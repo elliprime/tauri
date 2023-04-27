@@ -623,6 +623,12 @@ fn generate_binaries_data(settings: &Settings) -> crate::Result<BinariesMap> {
     }
   }
 
+  if settings.target().ends_with("windows-gnu") {
+    let mut bin_path = settings.project_out_directory().to_path_buf();
+    bin_path.push("WebView2Loader.dll");
+    binaries.insert(bin_path, "WebView2Loader.dll".to_string());
+  }
+
   Ok(binaries)
 }
 
