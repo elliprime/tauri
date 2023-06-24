@@ -32,13 +32,17 @@ pub fn make_dmg_in_linux(
 
   info!("writing dmg with {} sectors to {}", total_sectors, dmg_path.to_string_lossy());
 
-  // set extended attribute on mount dir
+  // set extended attribute on app dir
   let mut finder_info: [u8; 32] = [0; 32];
   finder_info[8] = 4;
   xattr_set(bundle_dir, "com.apple.FinderInfo", &finder_info)?;
 
+  info!("set extended attribute on app dir");
+
   // create dmg file
   create_dmg(bundle_dir, dmg_path, volname, total_sectors)?;
+
+  info!("dmg built");
 
   Ok(())
 }
