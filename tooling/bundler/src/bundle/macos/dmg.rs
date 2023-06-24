@@ -81,7 +81,7 @@ pub fn bundle_project(settings: &Settings, bundles: &[Bundle]) -> crate::Result<
     let icns_icon_path =
       create_icns_file(&output_path, settings)?.map(|path| path.to_string_lossy().to_string());
 
-    make_dmg_in_linux(&bundle_dir, &dmg_path, &dmg_name, bundle_file_name.as_str(), &product_name, icns_icon_path.as_deref())?;
+    make_dmg_in_linux(&bundle_dir, &dmg_path, bundle_file_name.as_str(), &product_name, icns_icon_path.as_deref())?;
   }
 
   #[cfg(not(target_os = "linux"))]
