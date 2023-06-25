@@ -28,12 +28,12 @@ pub fn make_dmg_in_linux(
     total_size_bytes += file_bytes + 20;
   }
 
-  let total_sectors = (total_size_bytes as f64 / 512.0).ceil() as u32 + 100;
+  let total_sectors = (total_size_bytes as f64 / 512.0).ceil() as u32 + 1000;
 
-  info!("writing dmg with {} bytes ({} sectors) to {}", total_size_bytes, total_sectors, dmg_path.to_string_lossy());
+  info!("creating dmg from {} with {} bytes ({} sectors) to {}", bundle_dir.to_string_lossy(), total_size_bytes, total_sectors, dmg_path.to_string_lossy());
 
   // set extended attribute on app dir
-  // TODO: not working
+  // TODO: not working, probably only works w/ hfsplus
   // let mut finder_info: [u8; 32] = [0; 32];
   // finder_info[8] = 4;
   // xattr_set(bundle_dir, "com.apple.FinderInfo", &finder_info)?;

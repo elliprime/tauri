@@ -77,7 +77,7 @@ md5 = "0.7.0"
 rpm = "0.14.0"
 xattr = "1.0"
 #apple-dmg = "0.2"
-apple-dmg = { git = "https://github.com/elliprime/apple-platform-rs", rev = "f7546421604799e0b06d2f59c3601c857335cd78" }
+apple-dmg = { git = "https://github.com/elliprime/apple-platform-rs", rev = "71ce7f04b9d0a3ad51280f748a01de65f52c5935" }
 
 [lib]
 name = "tauri_bundler"
