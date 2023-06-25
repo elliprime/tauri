@@ -30,7 +30,7 @@ pub fn make_dmg_in_linux(
 
   let total_sectors = (total_size_bytes as f64 / 512.0).ceil() as u32;
 
-  info!("writing dmg with {} sectors to {}", total_sectors, dmg_path.to_string_lossy());
+  info!("writing dmg with {} bytes ({} sectors) to {}", total_size_bytes, total_sectors, dmg_path.to_string_lossy());
 
   // set extended attribute on app dir
   // TODO: not working
