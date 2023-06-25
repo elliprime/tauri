@@ -28,7 +28,7 @@ pub fn make_dmg_in_linux(
     total_size_bytes += file_bytes + 20;
   }
 
-  let total_sectors = (total_size_bytes as f64 / 512.0).ceil() as u32;
+  let total_sectors = (total_size_bytes as f64 / 512.0).ceil() as u32 + 100;
 
   info!("writing dmg with {} bytes ({} sectors) to {}", total_size_bytes, total_sectors, dmg_path.to_string_lossy());
 
