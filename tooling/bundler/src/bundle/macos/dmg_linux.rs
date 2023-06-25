@@ -1,5 +1,5 @@
 use std::{
-  path::PathBuf,
+  path::{Path, PathBuf},
   process::Command,
 };
 use crate::Error;
@@ -30,18 +30,19 @@ pub fn make_dmg_in_linux(
 
   let total_sectors = (total_size_bytes as f64 / 512.0).ceil() as u32 + 1000;
 
-  info!("creating dmg from {} with {} bytes ({} sectors) to {}", bundle_dir.to_string_lossy(), total_size_bytes, total_sectors, dmg_path.to_string_lossy());
+  let bundle_path = Path::new(bundle_dir).join(bundle_file_name);
+
+  info!("creating dmg from {} with {} bytes ({} sectors) to {}", bundle_path.to_string_lossy(), total_size_bytes, total_sectors, dmg_path.to_string_lossy());
 
   // set extended attribute on app dir
   // TODO: not working, probably only works w/ hfsplus
   // let mut finder_info: [u8; 32] = [0; 32];
   // finder_info[8] = 4;
-  // xattr_set(bundle_dir, "com.apple.FinderInfo", &finder_info)?;
-
-  info!("set extended attribute on app dir");
+  // xattr_set(bundle_path, "com.apple.FinderInfo", &finder_info)?;
+  // info!("set extended attribute on app dir");
 
   // create dmg file
-  create_dmg(bundle_dir, dmg_path, volname, total_sectors)?;
+  create_dmg(&bundle_path, dmg_path, volname, total_sectors)?;
 
   info!("dmg built");
 
