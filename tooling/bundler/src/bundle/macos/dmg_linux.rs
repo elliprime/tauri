@@ -44,7 +44,7 @@ pub fn make_dmg_in_linux(
   // create dmg file
   create_dmg(&bundle_path, dmg_path, volname, total_sectors)?;
 
-  info!("dmg built");
+  info!("dmg built at {}", dmg_path.to_string_lossy());
 
   Ok(())
 }
