@@ -7,15 +7,23 @@ use anyhow::Error;
 use futures_util::TryFutureExt;
 use hyper::header::CONTENT_LENGTH;
 use hyper::http::uri::Authority;
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Client, Method, Request, Response, Server};
+use hyper::service::{service_fn};
+use hyper::{body::{Buf, Incoming as IncomingBody}, Method, Request, Response};
+use hyper_util::{
+  client::legacy::{Client, connect::HttpConnector},
+  server::conn::auto::Builder as ServerBuilder,
+  rt::{TokioExecutor, TokioIo}
+};
+use http_body_util::{BodyExt, Full};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
-use std::convert::Infallible;
 use std::path::PathBuf;
 use std::process::Child;
+use std::io::Read;
+use bytes::Bytes;
+use tokio::net::TcpListener;
 
-type HttpClient = Client<hyper::client::HttpConnector>;
+type HttpClient = Client<HttpConnector, Full<Bytes>>;
 
 const TAURI_OPTIONS: &str = "tauri:options";
 
@@ -56,35 +64,48 @@ impl TauriOptions {
 
 async fn handle(
   client: HttpClient,
-  mut req: Request<Body>,
+  req: Request<IncomingBody>,
   args: Args,
-) -> Result<Response<Body>, Error> {
-  // manipulate a new session to convert options to the native driver format
-  if let (&Method::POST, "/session") = (req.method(), req.uri().path()) {
-    let (mut parts, body) = req.into_parts();
+) -> Result<Response<IncomingBody>, Error> {
+  let is_session_create = if let (&Method::POST, "/session") = (req.method(), req.uri().path()) {
+    true
+  } else {
+    false
+  };
 
-    // get the body from the future stream and parse it as json
-    let body = hyper::body::to_bytes(body).await?;
-    let json: Value = serde_json::from_slice(&body)?;
+  // get the body from the future stream and parse it as json
+  let (mut parts, body) = req.into_parts();
+  let whole_body = body.collect().await?.aggregate();
+
+  let client_req: Request<Full<Bytes>>;
+
+  let mut bytes = Vec::new();
+
+  // manipulate a new session to convert options to the native driver format
+  if is_session_create {
+    let json: Value = serde_json::from_reader(whole_body.reader())?;
 
     // manipulate the json to convert from tauri option to native driver options
     let json = map_capabilities(json);
 
     // serialize json and update the content-length header to be accurate
-    let bytes = serde_json::to_vec(&json)?;
+    bytes = serde_json::to_vec(&json)?;
     parts.headers.insert(CONTENT_LENGTH, bytes.len().into());
 
-    req = Request::from_parts(parts, bytes.into());
+    client_req = Request::from_parts(parts, Full::new(bytes.into()));
+  } else {
+    whole_body.reader().read_to_end(&mut bytes)?;
+    client_req = Request::from_parts(parts, Full::new(bytes.into()));
   }
 
   client
-    .request(forward_to_native_driver(req, args)?)
+    .request(forward_to_native_driver(client_req, args)?)
     .err_into()
     .await
 }
 
 /// Transform the request to a request for the native webdriver server.
-fn forward_to_native_driver(mut req: Request<Body>, args: Args) -> Result<Request<Body>, Error> {
+fn forward_to_native_driver(mut req: Request<Full<Bytes>>, args: Args) -> Result<Request<Full<Bytes>>, Error> {
   let host: Authority = {
     let headers = req.headers_mut();
     headers.remove("host").expect("hyper request has host")
@@ -168,32 +189,33 @@ pub async fn run(args: Args, mut _driver: Child) -> Result<(), Error> {
   };
 
   let address = std::net::SocketAddr::from(([127, 0, 0, 1], args.port));
+  let listener = TcpListener::bind(&address).await?;
+
+  let (stream, _) = listener.accept().await?;
+  let io = TokioIo::new(stream);
 
   // the client we use to proxy requests to the native webdriver
-  let client = Client::builder()
+  let client = Client::builder(TokioExecutor::new())
     .http1_preserve_header_case(true)
     .http1_title_case_headers(true)
     .retry_canceled_requests(false)
     .build_http();
 
   // pass a copy of the client to the http request handler
-  let service = make_service_fn(move |_| {
-    let client = client.clone();
-    let args = args.clone();
-    async move {
-      Ok::<_, Infallible>(service_fn(move |request| {
-        handle(client.clone(), request, args.clone())
-      }))
-    }
+  let client = client.clone();
+  let args = args.clone();
+  let service = service_fn(move |request| {
+    handle(client.clone(), request, args.clone())
   });
 
   // set up a http1 server that uses the service we just created
-  Server::bind(&address)
-    .http1_title_case_headers(true)
-    .http1_preserve_header_case(true)
-    .http1_only(true)
-    .serve(service)
-    .await?;
+  ServerBuilder::new(TokioExecutor::new())
+    .http1()
+    .title_case_headers(true)
+    .preserve_header_case(true)
+    .serve_connection(io, service)
+    .await
+    .expect("server failed");
 
   #[cfg(unix)]
   {
