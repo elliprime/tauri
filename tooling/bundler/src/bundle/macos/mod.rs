@@ -4,6 +4,8 @@
 // SPDX-License-Identifier: MIT
 
 pub mod app;
+#[cfg(target_os = "linux")]
+pub mod dmg_linux;
 pub mod dmg;
 pub mod icon;
 pub mod ios;
