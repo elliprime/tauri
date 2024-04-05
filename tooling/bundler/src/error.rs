@@ -44,7 +44,6 @@ pub enum Error {
   #[error("`{0}`")]
   JsonError(#[from] serde_json::error::Error),
   /// Regex error.
-  #[cfg(any(target_os = "macos", windows))]
   #[error("`{0}`")]
   RegexError(#[from] regex::Error),
   /// Failed to perform HTTP request.
@@ -101,11 +100,9 @@ pub enum Error {
   #[error("failed to sign app: {0}")]
   Sign(String),
   /// time error.
-  #[cfg(target_os = "macos")]
   #[error("`{0}`")]
   TimeError(#[from] time::error::Error),
   /// Plist error.
-  #[cfg(target_os = "macos")]
   #[error(transparent)]
   Plist(#[from] plist::Error),
   /// Rpm error.

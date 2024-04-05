@@ -41,6 +41,14 @@ sha2 = "0.10"
 zip = { version = "0.6", default-features = false, features = [ "deflate" ] }
 dunce = "1"
 
+#[target."cfg(target_os = \"macos\")".dependencies]
+icns = { package = "tauri-icns", version = "0.1" }
+time = { version = "0.3", features = [ "formatting" ] }
+plist = "1"
+
+#[target."cfg(any(target_os = \"macos\", target_os = \"windows\"))".dependencies]
+regex = "1"
+
 [target."cfg(target_os = \"windows\")".dependencies]
 uuid = { version = "1", features = [ "v4", "v5" ] }
 bitness = "0.4"

@@ -7,7 +7,6 @@ mod category;
 mod common;
 #[cfg(target_os = "linux")]
 mod linux;
-#[cfg(target_os = "macos")]
 mod macos;
 mod path_utils;
 mod platform;
@@ -94,12 +93,8 @@ pub fn bundle_project(settings: Settings) -> crate::Result<Vec<Bundle>> {
     }
 
     let bundle_paths = match package_type {
-      #[cfg(target_os = "macos")]
       PackageType::MacOsBundle => macos::app::bundle_project(&settings)?,
-      #[cfg(target_os = "macos")]
       PackageType::IosBundle => macos::ios::bundle_project(&settings)?,
-      // dmg is dependent of MacOsBundle, we send our bundles to prevent rebuilding
-      #[cfg(target_os = "macos")]
       PackageType::Dmg => {
         let bundled = macos::dmg::bundle_project(&settings, &bundles)?;
         if !bundled.app.is_empty() {
